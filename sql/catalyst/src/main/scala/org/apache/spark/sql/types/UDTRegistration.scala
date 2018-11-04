@@ -39,8 +39,10 @@ object UDTRegistration extends Serializable with Logging {
     ("org.apache.spark.ml.linalg.SparseVector", "org.apache.spark.ml.linalg.VectorUDT"),
     ("org.apache.spark.ml.linalg.Matrix", "org.apache.spark.ml.linalg.MatrixUDT"),
     ("org.apache.spark.ml.linalg.DenseMatrix", "org.apache.spark.ml.linalg.MatrixUDT"),
-    ("org.apache.spark.ml.linalg.SparseMatrix", "org.apache.spark.ml.linalg.MatrixUDT"))
-
+    ("org.apache.spark.ml.linalg.SparseMatrix", "org.apache.spark.ml.linalg.MatrixUDT"),
+    ("org.apache.spark.ml_fhe.linalg.CtxtVector", "org.apache.spark.ml_fhe.linalg.CtxtVectorUDT"),
+    ("org.apache.spark.ml_fhe.linalg.CtxtDenseVector",
+      "org.apache.spark.ml_fhe.linalg.CtxtVectorUDT"))
   /**
    * Queries if a given user class is already registered or not.
    * @param userClassName the name of user class

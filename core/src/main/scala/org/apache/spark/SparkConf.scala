@@ -17,7 +17,7 @@
 
 package org.apache.spark
 
-import java.util.{Map => JMap}
+import java.util.{Arrays, Map => JMap}
 import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.JavaConverters._
@@ -585,6 +585,35 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
 }
 
 private[spark] object SparkConf extends Logging {
+  try {
+    addLibraryPath(System.getProperty("user.dir") + "/../../../lib")
+    System.loadLibrary("SparkFHE")
+  } catch {
+    case e: UnsatisfiedLinkError =>
+      // scalastyle:off println
+      System.err.println(
+        "Native code library failed to load. " +
+          "See the chapter on Dynamic Linking Problems in the SWIG Java documentation for help.\n"
+          + e)
+      // scalastyle:on println
+      System.exit(1)
+  }
+  // @throws[Exception]
+  private def addLibraryPath(pathToAdd: String): Unit = {
+    val usrPathsField = classOf[ClassLoader].getDeclaredField("usr_paths")
+    usrPathsField.setAccessible(true)
+    // get array of paths
+    val paths = usrPathsField.get(null).asInstanceOf[Array[String]]
+    // check if the path to add is already present
+    for (path <- paths) {
+      if (path == pathToAdd) return
+    }
+    // add the new path
+    val newPaths = Arrays.copyOf(paths, paths.length + 1)
+    newPaths(newPaths.length - 1) = pathToAdd
+    usrPathsField.set(null, newPaths)
+  }
+
 
   /**
    * Maps deprecated config keys to information about the deprecation.

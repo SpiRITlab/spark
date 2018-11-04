@@ -289,6 +289,11 @@
       <artifactId>junit-interface</artifactId>
       <scope>test</scope>
     </dependency>
+    <!--<dependency>
+      <groupId>edu.rit.sparkfhe</groupId>
+      <artifactId>sparkfhe</artifactId>
+      <version>0.1</version>
+    </dependency>-->
   </dependencies>
   <dependencyManagement>
     <dependencies>
@@ -1989,6 +1994,11 @@
           </exclusion>
         </exclusions>
       </dependency>
+      <!--<dependency>-->
+        <!--<groupId>edu.rit.sparkfhe</groupId>-->
+        <!--<artifactId>sparkfhe</artifactId>-->
+        <!--<version>0.1</version>-->
+      <!--</dependency>-->
     </dependencies>
   </dependencyManagement>
 
@@ -2772,7 +2782,9 @@
       <properties>
         <!-- override point for ASF staging/snapshot repos -->
         <asf.staging>https://repository.apache.org/content/groups/staging/</asf.staging>
-        <asf.snapshots>https://repository.apache.org/content/repositories/snapshots/</asf.snapshots>
+        <asf.snapshots>https://repository.apache.org/content/
+
+          /snapshots/</asf.snapshots>
       </properties>
 
       <pluginRepositories>
@@ -2807,6 +2819,11 @@
             <enabled>false</enabled>
           </releases>
         </repository>
+        <!--<repository>
+          <id>project.local</id>
+          <name>project</name>
+          <url>file:${project.basedir}/repo</url>
+        </repository>-->
       </repositories>
     </profile>
 

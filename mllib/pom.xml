@@ -137,6 +137,12 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>sparkfhe</groupId>
+      <artifactId>sparkfhe-swig</artifactId>
+      <version>1.0</version>
+    </dependency>
+
   </dependencies>
   <profiles>
     <profile>
