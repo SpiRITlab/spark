@@ -17,18 +17,17 @@
 
 package org.apache.spark.mllib_fhe.linalg
 
+import java.math.BigInteger
 import java.util
 
 import scala.annotation.varargs
 import scala.collection.JavaConverters._
 import scala.language.implicitConversions
 
-import breeze.linalg.{DenseVector => BDV, Vector => BV}
-import org.json4s.DefaultFormats
-import org.json4s.JsonDSL._
-import org.json4s.jackson.JsonMethods.{compact, parse => parseJson, render}
-
-import org.apache.spark.SparkException
+// import org.json4s.DefaultFormats
+// import org.json4s.JsonDSL._
+// import org.json4s.jackson.JsonMethods.{compact, render, parse => parseJson}
+// import org.apache.spark.SparkException
 import org.apache.spark.annotation.{AlphaComponent, Since}
 import org.apache.spark.ml_fhe.{linalg => newlinalg}
 import org.apache.spark.mllib.util.NumericParser
@@ -55,14 +54,14 @@ sealed trait CtxtVector extends Serializable {
    * Converts the instance to a double array.
    */
   @Since("1.0.0")
-  def toArray: Array[Double]
+  def toArray: Array[String]
 
   override def equals(other: Any): Boolean = {
     other match {
       case v2: CtxtVector =>
         if (this.size != v2.size) return false
         (this, v2) match {
-          case (_, _) => util.Arrays.equals(this.toArray, v2.toArray)
+          case (_, _) => this.toArray.deep == v2.toArray.deep
         }
       case _ => false
     }
@@ -80,9 +79,9 @@ sealed trait CtxtVector extends Serializable {
     this.foreachActive { (index, value) =>
       if (nnz < CtxtVectors.MAX_HASH_NNZ) {
         // ignore explicit 0 for comparison between sparse and dense
-        if (value != 0) {
+        if (value != "") {
           result = 31 * result + index
-          val bits = java.lang.Double.doubleToLongBits(value)
+          val bits = java.lang.Long.parseLong(new BigInteger(value.getBytes()).toString(2))
           result = 31 * result + (bits ^ (bits >>> 32)).toInt
           nnz += 1
         }
@@ -96,14 +95,14 @@ sealed trait CtxtVector extends Serializable {
   /**
    * Converts the instance to a breeze vector.
    */
-  private[spark] def asBreeze: BV[Double]
+  // private[spark] def asBreeze: BV[Double]
 
   /**
    * Gets the value of the ith element.
    * @param i index
    */
   @Since("1.1.0")
-  def apply(i: Int): Double = asBreeze(i)
+  def apply(i: Int): String = this.toArray(i)
 
   /**
    * Makes a deep copy of this vector.
@@ -121,7 +120,7 @@ sealed trait CtxtVector extends Serializable {
    *          with type `Double`.
    */
   @Since("1.6.0")
-  def foreachActive(f: (Int, Double) => Unit): Unit
+  def foreachActive(f: (Int, String) => Unit): Unit
 
   /**
    * Number of active entries.  An "active entry" is an element which is explicitly stored,
@@ -129,14 +128,14 @@ sealed trait CtxtVector extends Serializable {
    *
    * @note Inactive entries have value 0.
    */
-  @Since("1.4.0")
-  def numActives: Int
+  /* @Since("1.4.0")
+  def numActives: Int */
 
   /**
    * Number of nonzero elements. This scans all active values and count nonzeros.
    */
-  @Since("1.4.0")
-  def numNonzeros: Int
+  /* @Since("1.4.0")
+  def numNonzeros: Int */
 
   /**
    * Converts this vector to a dense vector.
@@ -147,25 +146,25 @@ sealed trait CtxtVector extends Serializable {
   /**
    * Returns a vector in either dense or sparse format, whichever uses less storage.
    */
-  @Since("1.4.0")
+  /* @Since("1.4.0")
   def compressed: CtxtVector = {
     val nnz = numNonzeros
     // A dense vector needs 8 * size + 8 bytes, while a sparse vector needs 12 * nnz + 20 bytes.
     toDense
-  }
+  } */
 
   /**
    * Find the index of a maximal element.  Returns the first maximal element in case of a tie.
    * Returns -1 if vector has length 0.
    */
-  @Since("1.5.0")
-  def argmax: Int
+  /* @Since("1.5.0")
+  def argmax: Int */
 
   /**
    * Converts the vector to a JSON string.
    */
-  @Since("1.6.0")
-  def toJson: String
+  /* @Since("1.6.0")
+  def toJson: String */
 
   /**
    * Convert this vector to the new mllib-local representation.
@@ -193,7 +192,7 @@ class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
       StructField("type", ByteType, nullable = false),
       StructField("size", IntegerType, nullable = true),
       StructField("indices", ArrayType(IntegerType, containsNull = false), nullable = true),
-      StructField("values", ArrayType(DoubleType, containsNull = false), nullable = true)))
+      StructField("values", ArrayType(StringType, containsNull = false), nullable = true)))
   }
 
   override def serialize(obj: CtxtVector): InternalRow = {
@@ -203,7 +202,7 @@ class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
         row.setByte(0, 1)
         row.setNullAt(1)
         row.setNullAt(2)
-        row.update(3, UnsafeArrayData.fromPrimitiveArray(values))
+        row.update(3, values)
         row
     }
   }
@@ -217,7 +216,7 @@ class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
         val tpe = row.getByte(0)
         tpe match {
           case 1 =>
-            val values = row.getArray(3).toDoubleArray()
+            val values = row.getArray(3).toArray[String](StringType)
             new CtxtDenseVector(values)
         }
     }
@@ -255,7 +254,7 @@ object CtxtVectors {
    */
   @Since("1.0.0")
   @varargs
-  def dense(firstValue: Double, otherValues: Double*): CtxtVector =
+  def dense(firstValue: String, otherValues: String*): CtxtVector =
     new CtxtDenseVector((firstValue +: otherValues).toArray)
 
   // A dummy implicit is used to avoid signature collision with the one generated by @varargs.
@@ -263,7 +262,7 @@ object CtxtVectors {
    * Creates a dense vector from a double array.
    */
   @Since("1.0.0")
-  def dense(values: Array[Double]): CtxtVector = new CtxtDenseVector(values)
+  def dense(values: Array[String]): CtxtVector = new CtxtDenseVector(values)
 
   /**
    * Creates a vector of all zeros.
@@ -273,7 +272,7 @@ object CtxtVectors {
    */
   @Since("1.1.0")
   def zeros(size: Int): CtxtVector = {
-    new CtxtDenseVector(new Array[Double](size))
+    new CtxtDenseVector(new Array[String](size))
   }
 
   /**
@@ -287,7 +286,7 @@ object CtxtVectors {
   /**
    * Parses the JSON representation of a vector into a [[CtxtVector]].
    */
-  @Since("1.6.0")
+  /* @Since("1.6.0")
   def fromJson(json: String): CtxtVector = {
     implicit val formats = DefaultFormats
     val jValue = parseJson(json)
@@ -298,21 +297,21 @@ object CtxtVectors {
       case _ =>
         throw new IllegalArgumentException(s"Cannot parse $json into a vector.")
     }
-  }
+  } */
 
-  private[mllib_fhe] def parseNumeric(any: Any): CtxtVector = {
+  /* private[mllib_fhe] def parseNumeric(any: Any): CtxtVector = {
     any match {
       case values: Array[Double] =>
         CtxtVectors.dense(values)
       case other =>
         throw new SparkException(s"Cannot parse $other.")
     }
-  }
+  } */
 
   /**
    * Creates a vector instance from a breeze vector.
    */
-  private[spark] def fromBreeze(breezeVector: BV[Double]): CtxtVector = {
+  /* private[spark] def fromBreeze(breezeVector: BV[Double]): CtxtVector = {
     breezeVector match {
       case v: BDV[Double] =>
         if (v.offset == 0 && v.stride == 1 && v.length == v.data.length) {
@@ -323,7 +322,7 @@ object CtxtVectors {
       case v: BV[_] =>
         sys.error("Unsupported Breeze vector type: " + v.getClass.getName)
     }
-  }
+  } */
 
   /**
    * Returns the p-norm of this vector.
@@ -331,7 +330,7 @@ object CtxtVectors {
    * @param p norm.
    * @return norm in L^p^ space.
    */
-  @Since("1.3.0")
+  /* @Since("1.3.0")
   def norm(vector: CtxtVector, p: Double): Double = {
     require(p >= 1.0, "To compute the p-norm of the vector, we require that you specify a p>=1. " +
       s"You specified p=$p.")
@@ -375,7 +374,7 @@ object CtxtVectors {
       }
       math.pow(sum, 1.0 / p)
     }
-  }
+  } */
 
   /**
    * Returns the squared distance between two Vectors.
@@ -393,7 +392,7 @@ object CtxtVectors {
         var kv = 0
         val sz = vv1.length
         while (kv < sz) {
-          val score = vv1(kv) - vv2(kv)
+          val score = Integer.parseInt(vv1(kv)) - Integer.parseInt(vv2(kv))
           squaredDistance += score * score
           kv += 1
         }
@@ -409,17 +408,17 @@ object CtxtVectors {
    */
   private[mllib_fhe] def equals(
       v1Indices: IndexedSeq[Int],
-      v1Values: Array[Double],
+      v1Values: Array[String],
       v2Indices: IndexedSeq[Int],
-      v2Values: Array[Double]): Boolean = {
+      v2Values: Array[String]): Boolean = {
     val v1Size = v1Values.length
     val v2Size = v2Values.length
     var k1 = 0
     var k2 = 0
     var allEqual = true
     while (allEqual) {
-      while (k1 < v1Size && v1Values(k1) == 0) k1 += 1
-      while (k2 < v2Size && v2Values(k2) == 0) k2 += 1
+      while (k1 < v1Size && v1Values(k1) == "") k1 += 1
+      while (k2 < v2Size && v2Values(k2) == "") k2 += 1
 
       if (k1 >= v1Size || k2 >= v2Size) {
         return k1 >= v1Size && k2 >= v2Size // check end alignment
@@ -450,7 +449,7 @@ object CtxtVectors {
 @Since("1.0.0")
 @SQLUserDefinedType(udt = classOf[CtxtVectorUDT])
 class CtxtDenseVector @Since("1.0.0") (
-    @Since("1.0.0") val values: Array[Double]) extends CtxtVector {
+    @Since("1.0.0") val values: Array[String]) extends CtxtVector {
 
   @Since("1.0.0")
   override def size: Int = values.length
@@ -458,12 +457,12 @@ class CtxtDenseVector @Since("1.0.0") (
   override def toString: String = values.mkString("[", ",", "]")
 
   @Since("1.0.0")
-  override def toArray: Array[Double] = values
+  override def toArray: Array[String] = values
 
-  private[spark] override def asBreeze: BV[Double] = new BDV[Double](values)
+  // private[spark] override def asBreeze: BV[Double] = new BDV[Double](values)
 
   @Since("1.0.0")
-  override def apply(i: Int): Double = values(i)
+  override def apply(i: Int): String = values(i)
 
   @Since("1.1.0")
   override def copy: CtxtDenseVector = {
@@ -471,7 +470,7 @@ class CtxtDenseVector @Since("1.0.0") (
   }
 
   @Since("1.6.0")
-  override def foreachActive(f: (Int, Double) => Unit): Unit = {
+  override def foreachActive(f: (Int, String) => Unit): Unit = {
     var i = 0
     val localValuesSize = values.length
     val localValues = values
@@ -491,9 +490,9 @@ class CtxtDenseVector @Since("1.0.0") (
     var nnz = 0
     while (i < end && nnz < CtxtVectors.MAX_HASH_NNZ) {
       val v = values(i)
-      if (v != 0.0) {
+      if (v != "") {
         result = 31 * result + i
-        val bits = java.lang.Double.doubleToLongBits(values(i))
+        val bits = java.lang.Long.parseLong(new BigInteger(values(i).getBytes()).toString(2))
         result = 31 * result + (bits ^ (bits >>> 32)).toInt
         nnz += 1
       }
@@ -502,10 +501,10 @@ class CtxtDenseVector @Since("1.0.0") (
     result
   }
 
-  @Since("1.4.0")
-  override def numActives: Int = size
+  /* @Since("1.4.0")
+  override def numActives: Int = size */
 
-  @Since("1.4.0")
+  /* @Since("1.4.0")
   override def numNonzeros: Int = {
     // same as values.count(_ != 0.0) but faster
     var nnz = 0
@@ -515,9 +514,9 @@ class CtxtDenseVector @Since("1.0.0") (
       }
     }
     nnz
-  }
+  } */
 
-  @Since("1.5.0")
+  /* @Since("1.5.0")
   override def argmax: Int = {
     if (size == 0) {
       -1
@@ -534,13 +533,13 @@ class CtxtDenseVector @Since("1.0.0") (
       }
       maxIdx
     }
-  }
+  } */
 
-  @Since("1.6.0")
+  /* @Since("1.6.0")
   override def toJson: String = {
     val jValue = ("type" -> 1) ~ ("values" -> values.toSeq)
     compact(render(jValue))
-  }
+  } */
 
   @Since("2.0.0")
   override def asML: newlinalg.CtxtDenseVector = {
@@ -553,7 +552,7 @@ object CtxtDenseVector {
 
   /** Extracts the value array from a dense vector. */
   @Since("1.3.0")
-  def unapply(dv: CtxtDenseVector): Option[Array[Double]] = Some(dv.values)
+  def unapply(dv: CtxtDenseVector): Option[Array[String]] = Some(dv.values)
 
   /**
    * Convert new linalg type to spark.mllib type.  Light copy; only copies references

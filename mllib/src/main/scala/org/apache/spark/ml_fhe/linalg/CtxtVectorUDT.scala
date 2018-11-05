@@ -36,7 +36,7 @@ private[spark] class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
         row.setByte(0, 1)
         row.setNullAt(1)
         row.setNullAt(2)
-        row.update(3, UnsafeArrayData.fromPrimitiveArray(values))
+        row.update(3, values)
         row
     }
   }
@@ -49,7 +49,7 @@ private[spark] class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
         val tpe = row.getByte(0)
         tpe match {
           case 1 =>
-            val values = row.getArray(3).toDoubleArray()
+            val values = row.getArray(3).toArray[String](StringType)
             new CtxtDenseVector(values)
         }
     }
@@ -82,6 +82,6 @@ private[spark] class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
       StructField("type", ByteType, nullable = false),
       StructField("size", IntegerType, nullable = true),
       StructField("indices", ArrayType(IntegerType, containsNull = false), nullable = true),
-      StructField("values", ArrayType(DoubleType, containsNull = false), nullable = true)))
+      StructField("values", ArrayType(StringType, containsNull = false), nullable = true)))
   }
 }

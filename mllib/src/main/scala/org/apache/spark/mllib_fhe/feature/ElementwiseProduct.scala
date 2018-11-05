@@ -48,11 +48,11 @@ class ElementwiseProduct @Since("1.4.0")(
     // scalastyle:on println
     vector match {
       case dv: CtxtDenseVector =>
-        val values: Array[Double] = dv.values.clone()
+        val values: Array[String] = dv.values.clone()
         val dim = scalingVec.size
         var i = 0
         while (i < dim) {
-          values(i) *= scalingVec(i)
+          values(i) = (Integer.parseInt(values(i)) * Integer.parseInt(scalingVec(i))).toString
           i += 1
         }
         CtxtVectors.dense(values)
