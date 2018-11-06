@@ -42,17 +42,13 @@ class ElementwiseProduct @Since("1.4.0")(
   override def transform(vector: CtxtVector): CtxtVector = {
     require(vector.size == scalingVec.size,
       s"vector sizes do not match: Expected ${scalingVec.size} but found ${vector.size}")
-
-    // scalastyle:off println
-    System.out.println(SparkFHE.do_basic_op(2, 6, SparkFHEConstants.ADD))
-    // scalastyle:on println
     vector match {
       case dv: CtxtDenseVector =>
         val values: Array[String] = dv.values.clone()
         val dim = scalingVec.size
         var i = 0
         while (i < dim) {
-          values(i) = (Integer.parseInt(values(i)) * Integer.parseInt(scalingVec(i))).toString
+          values(i) = SparkFHE.do_FHE_basic_op(values(i), scalingVec(i), SparkFHEConstants.FHE_MUL)
           i += 1
         }
         CtxtVectors.dense(values)
