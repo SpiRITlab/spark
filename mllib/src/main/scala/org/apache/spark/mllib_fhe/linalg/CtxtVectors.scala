@@ -21,19 +21,16 @@ import java.math.BigInteger
 import java.util
 
 import scala.annotation.varargs
-import scala.collection.JavaConverters._
 import scala.language.implicitConversions
 
-// import org.json4s.DefaultFormats
-// import org.json4s.JsonDSL._
-// import org.json4s.jackson.JsonMethods.{compact, render, parse => parseJson}
-// import org.apache.spark.SparkException
 import org.apache.spark.annotation.{AlphaComponent, Since}
 import org.apache.spark.ml_fhe.{linalg => newlinalg}
 import org.apache.spark.mllib.util.NumericParser
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeArrayData}
+import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 
 /**
  * Represents a numeric vector, whose index type is Int and value type is Double.
@@ -202,7 +199,7 @@ class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
         row.setByte(0, 1)
         row.setNullAt(1)
         row.setNullAt(2)
-        row.update(3, values)
+        row.update(3, ArrayData.toArrayData(values.map { x => UTF8String.fromString(x) }))
         row
     }
   }
@@ -216,7 +213,7 @@ class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
         val tpe = row.getByte(0)
         tpe match {
           case 1 =>
-            val values = row.getArray(3).toArray[String](StringType)
+            val values = row.getArray(3).toArray[UTF8String](StringType).map { x => x.toString}
             new CtxtDenseVector(values)
         }
     }
