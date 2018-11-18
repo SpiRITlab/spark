@@ -48,7 +48,7 @@ class ElementwiseProduct @Since("1.4.0")(
         val dim = scalingVec.size
         var i = 0
         while (i < dim) {
-          values(i) = SparkFHE.do_FHE_basic_op(values(i), scalingVec(i),
+          values(i) = SparkFHE.getInstance().do_FHE_basic_op(values(i), scalingVec(i),
             SparkFHEConstants.FHE_MULTIPLY)
           i += 1
         }
