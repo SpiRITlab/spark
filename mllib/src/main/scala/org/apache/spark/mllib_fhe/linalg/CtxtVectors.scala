@@ -23,7 +23,9 @@ import java.util
 import scala.annotation.varargs
 import scala.language.implicitConversions
 
-import org.apache.spark.annotation.{AlphaComponent, Since}
+import sparkfhe.{SparkFHE, SparkFHEConstants, StringVector}
+
+import org.apache.spark .annotation.{AlphaComponent, Since}
 import org.apache.spark.ml_fhe.{linalg => newlinalg}
 import org.apache.spark.mllib.util.NumericParser
 import org.apache.spark.sql.catalyst.InternalRow
@@ -31,6 +33,7 @@ import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeArra
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+
 
 /**
  * Represents a numeric vector, whose index type is Int and value type is Double.
@@ -131,8 +134,8 @@ sealed trait CtxtVector extends Serializable {
   /**
    * Number of nonzero elements. This scans all active values and count nonzeros.
    */
-  /* @Since("1.4.0")
-  def numNonzeros: Int */
+  @Since("1.4.0")
+  def numNonzeros: String
 
   /**
    * Converts this vector to a dense vector.
@@ -380,17 +383,21 @@ object CtxtVectors {
    * @return squared distance between two Vectors.
    */
   @Since("1.3.0")
-  def sqdist(v1: CtxtVector, v2: CtxtVector): Double = {
+  def sqdist(v1: CtxtVector, v2: CtxtVector): String = {
     require(v1.size == v2.size, s"Vector dimensions do not match: Dim(v1)=${v1.size} and Dim(v2)" +
       s"=${v2.size}.")
-    var squaredDistance = 0.0
+    var squaredDistance = SparkFHE.getInstance().encrypt(0)
     (v1, v2) match {
       case (CtxtDenseVector(vv1), CtxtDenseVector(vv2)) =>
         var kv = 0
         val sz = vv1.length
         while (kv < sz) {
-          val score = Integer.parseInt(vv1(kv)) - Integer.parseInt(vv2(kv))
-          squaredDistance += score * score
+          val score = SparkFHE.getInstance().do_FHE_basic_op(vv1(kv), vv2(kv),
+            SparkFHEConstants.FHE_SUBTRACT)
+          squaredDistance = SparkFHE.getInstance().do_FHE_basic_op(squaredDistance,
+            SparkFHE.getInstance().do_FHE_basic_op(score, score,
+              SparkFHEConstants.FHE_MULTIPLY),
+            SparkFHEConstants.FHE_ADD)
           kv += 1
         }
       case _ =>
@@ -501,17 +508,23 @@ class CtxtDenseVector @Since("1.0.0") (
   /* @Since("1.4.0")
   override def numActives: Int = size */
 
-  /* @Since("1.4.0")
-  override def numNonzeros: Int = {
+  @Since("1.4.0")
+  override def numNonzeros: String = {
     // same as values.count(_ != 0.0) but faster
-    var nnz = 0
+    val sv: StringVector = new StringVector()
+    values.foreach { v =>
+      sv.add(v)
+    }
+    val x = SparkFHE.getInstance().numNonzeros(sv)
+    x
+    /* var nnz = 0
     values.foreach { v =>
       if (v != 0.0) {
         nnz += 1
       }
     }
-    nnz
-  } */
+    nnz */
+  }
 
   /* @Since("1.5.0")
   override def argmax: Int = {
