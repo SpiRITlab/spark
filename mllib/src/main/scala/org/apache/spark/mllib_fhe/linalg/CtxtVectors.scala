@@ -23,7 +23,7 @@ import java.util
 import scala.annotation.varargs
 import scala.language.implicitConversions
 
-import sparkfhe.{SparkFHE, SparkFHEConstants, StringVector}
+import spiritlab.sparkfhe.common.{SparkFHE, SparkFHEConstants, StringVector}
 
 import org.apache.spark .annotation.{AlphaComponent, Since}
 import org.apache.spark.ml_fhe.{linalg => newlinalg}

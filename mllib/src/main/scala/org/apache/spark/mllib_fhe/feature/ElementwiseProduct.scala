@@ -17,7 +17,7 @@
 
 package org.apache.spark.mllib_fhe.feature
 
-import sparkfhe.{SparkFHE, SparkFHEConstants}
+import spiritlab.sparkfhe.common.{SparkFHE, SparkFHEConstants}
 
 import org.apache.spark.annotation.Since
 import org.apache.spark.mllib_fhe.linalg._
