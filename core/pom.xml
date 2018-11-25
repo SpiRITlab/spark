@@ -28,6 +28,7 @@
   <artifactId>spark-core_2.12</artifactId>
   <properties>
     <sbt.project.name>core</sbt.project.name>
+    <sparkfhe.lib.directory>../../../lib</sparkfhe.lib.directory>
   </properties>
   <packaging>jar</packaging>
   <name>Spark Project Core</name>

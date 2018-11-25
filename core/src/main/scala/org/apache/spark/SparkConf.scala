@@ -631,7 +631,7 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
 
 private[spark] object SparkConf extends Logging {
   try {
-    addLibraryPath(System.getProperty("user.dir") + "/../../../lib")
+    addLibraryPath(System.getProperty("sparkfhe.lib.directory"))
     System.loadLibrary("SparkFHE")
   } catch {
     case e: UnsatisfiedLinkError =>
