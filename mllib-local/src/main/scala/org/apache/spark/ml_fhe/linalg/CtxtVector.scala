@@ -98,7 +98,9 @@ sealed trait CtxtVector extends Serializable {
     */
   @Since("2.0.0")
   def copy: CtxtVector = {
+    // scalastyle:off throwerror
     throw new NotImplementedError(s"copy is not implemented for ${this.getClass}.")
+    // scalastyle:on throwerror
   }
 
   /**
