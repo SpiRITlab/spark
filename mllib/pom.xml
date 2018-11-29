@@ -139,7 +139,7 @@
 
     <dependency>
       <groupId>spiritlab.sparkfhe</groupId>
-      <artifactId>sparkfhe-utils</artifactId>
+      <artifactId>sparkfhe-api</artifactId>
       <version>1.0-SNAPSHOT</version>
     </dependency>
 

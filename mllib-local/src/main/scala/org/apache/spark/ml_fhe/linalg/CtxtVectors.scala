@@ -26,22 +26,22 @@ import scala.annotation.varargs
 import org.apache.spark.annotation.Since
 
 /**
-  * Represents a numeric vector, whose index type is Int and value type is Double.
-  *
-  * @note Users should not implement this interface.
-  */
+ * Represents a numeric vector, whose index type is Int and value type is Double.
+ *
+ * @note Users should not implement this interface.
+ */
 @Since("2.0.0")
 sealed trait CtxtVector extends Serializable {
 
   /**
-    * Size of the vector.
-    */
+   * Size of the vector.
+   */
   @Since("2.0.0")
   def size: Int
 
   /**
-    * Converts the instance to a double array.
-    */
+   * Converts the instance to a double array.
+   */
   @Since("2.0.0")
   def toArray: Array[String]
 
@@ -57,9 +57,9 @@ sealed trait CtxtVector extends Serializable {
   }
 
   /**
-    * Returns a hash code value for the vector. The hash code is based on its size and its first 128
-    * nonzero entries, using a hash algorithm similar to `java.util.Arrays.hashCode`.
-    */
+   * Returns a hash code value for the vector. The hash code is based on its size and its first 128
+   * nonzero entries, using a hash algorithm similar to `java.util.Arrays.hashCode`.
+   */
   override def hashCode(): Int = {
     // This is a reference implementation. It calls return in foreachActive, which is slow.
     // Subclasses should override it with optimized implementation.
@@ -82,20 +82,21 @@ sealed trait CtxtVector extends Serializable {
   }
 
   /**
-    * Converts the instance to a breeze vector.
-    */
+   * Converts the instance to a breeze vector.
+   */
   // private[spark] def asBreeze: BV[Double]
 
   /**
-    * Gets the value of the ith element.
-    * @param i index
-    */
+   * Gets the value of the ith element.
+   *
+   * @param i index
+   */
   @Since("2.0.0")
   def apply(i: Int): String = this.toArray(i)
 
   /**
-    * Makes a deep copy of this vector.
-    */
+   * Makes a deep copy of this vector.
+   */
   @Since("2.0.0")
   def copy: CtxtVector = {
     // scalastyle:off throwerror
@@ -104,37 +105,37 @@ sealed trait CtxtVector extends Serializable {
   }
 
   /**
-    * Applies a function `f` to all the active elements of dense and sparse vector.
-    *
-    * @param f the function takes two parameters where the first parameter is the index of
-    *          the vector with type `Int`, and the second parameter is the corresponding value
-    *          with type `Double`.
-    */
+   * Applies a function `f` to all the active elements of dense and sparse vector.
+   *
+   * @param f the function takes two parameters where the first parameter is the index of
+   *          the vector with type `Int`, and the second parameter is the corresponding value
+   *          with type `Double`.
+   */
   @Since("2.0.0")
   def foreachActive(f: (Int, String) => Unit): Unit
 
   /**
-    * Number of active entries.  An "active entry" is an element which is explicitly stored,
-    * regardless of its value.  Note that inactive entries have value 0.
-    */
+   * Number of active entries.  An "active entry" is an element which is explicitly stored,
+   * regardless of its value.  Note that inactive entries have value 0.
+   */
   /* @Since("2.0.0")
   def numActives: Int */
 
   /**
-    * Number of nonzero elements. This scans all active values and count nonzeros.
-    */
+   * Number of nonzero elements. This scans all active values and count nonzeros.
+   */
   /* @Since("2.0.0")
   def numNonzeros: Int */
 
   /**
-    * Converts this vector to a dense vector.
-    */
+   * Converts this vector to a dense vector.
+   */
   @Since("2.0.0")
   def toDense: CtxtDenseVector = new CtxtDenseVector(this.toArray)
 
   /**
-    * Returns a vector in either dense or sparse format, whichever uses less storage.
-    */
+   * Returns a vector in either dense or sparse format, whichever uses less storage.
+   */
   /* @Since("2.0.0")
   def compressed: CtxtVector = {
     val nnz = numNonzeros
@@ -143,50 +144,43 @@ sealed trait CtxtVector extends Serializable {
   } */
 
   /**
-    * Find the index of a maximal element.  Returns the first maximal element in case of a tie.
-    * Returns -1 if vector has length 0.
-    */
+   * Find the index of a maximal element.  Returns the first maximal element in case of a tie.
+   * Returns -1 if vector has length 0.
+   */
   /* @Since("2.0.0")
   def argmax: Int */
 }
 
 /**
-  * Factory methods for [[org.apache.spark.ml_fhe.linalg.CtxtVector]].
-  * We don't use the name `Vector` because Scala imports
-  * `scala.collection.immutable.Vector` by default.
-  */
+ * Factory methods for [[org.apache.spark.ml_fhe.linalg.CtxtVector]].
+ * We don't use the name `Vector` because Scala imports
+ * `scala.collection.immutable.Vector` by default.
+ */
 @Since("2.0.0")
 object CtxtVectors {
 
+  /** Max number of nonzero entries used in computing hash code. */
+  private[linalg] val MAX_HASH_NNZ = 128
+
+  // A dummy implicit is used to avoid signature collision with the one generated by @varargs.
+
   /**
-    * Creates a dense vector from its values.
-    */
+   * Creates a dense vector from its values.
+   */
   @varargs
   @Since("2.0.0")
   def dense(firstValue: String, otherValues: String*): CtxtVector =
     new CtxtDenseVector((firstValue +: otherValues).toArray)
 
-  // A dummy implicit is used to avoid signature collision with the one generated by @varargs.
   /**
-    * Creates a dense vector from a double array.
-    */
+   * Creates a dense vector from a double array.
+   */
   @Since("2.0.0")
   def dense(values: Array[String]): CtxtVector = new CtxtDenseVector(values)
 
   /**
-    * Creates a vector of all zeros.
-    *
-    * @param size vector size
-    * @return a zero vector
-    */
-  @Since("2.0.0")
-  def zeros(size: Int): CtxtVector = {
-    new CtxtDenseVector(new Array[String](size))
-  }
-
-  /**
-    * Creates a vector instance from a breeze vector.
-    */
+   * Creates a vector instance from a breeze vector.
+   */
   /* private[spark] def fromBreeze(breezeVector: BV[Double]): CtxtVector = {
     breezeVector match {
       case v: BDV[Double] =>
@@ -201,11 +195,12 @@ object CtxtVectors {
   } */
 
   /**
-    * Returns the p-norm of this vector.
-    * @param vector input vector.
-    * @param p norm.
-    * @return norm in L^p^ space.
-    */
+   * Returns the p-norm of this vector.
+   *
+   * @param vector input vector.
+   * @param p      norm.
+   * @return norm in L^p^ space.
+   */
   /* @Since("2.0.0")
   def norm(vector: CtxtVector, p: Double): Double = {
     require(p >= 1.0, "To compute the p-norm of the vector, we require that you specify a p>=1. " +
@@ -253,11 +248,12 @@ object CtxtVectors {
   } */
 
   /**
-    * Returns the squared distance between two Vectors.
-    * @param v1 first Vector.
-    * @param v2 second Vector.
-    * @return squared distance between two Vectors.
-    */
+   * Returns the squared distance between two Vectors.
+   *
+   * @param v1 first Vector.
+   * @param v2 second Vector.
+   * @return squared distance between two Vectors.
+   */
   /* @Since("2.0.0")
   def sqdist(v1: CtxtVector, v2: CtxtVector): Double = {
     require(v1.size == v2.size, s"Vector dimensions do not match: Dim(v1)=${v1.size} and Dim(v2)" +
@@ -280,8 +276,19 @@ object CtxtVectors {
   } */
 
   /**
-    * Check equality between sparse/dense vectors
-    */
+   * Creates a vector of all zeros.
+   *
+   * @param size vector size
+   * @return a zero vector
+   */
+  @Since("2.0.0")
+  def zeros(size: Int): CtxtVector = {
+    new CtxtDenseVector(new Array[String](size))
+  }
+
+  /**
+   * Check equality between sparse/dense vectors
+   */
   private[ml_fhe] def equals(
                               v1Indices: IndexedSeq[Int],
                               v1Values: Array[String],
@@ -305,27 +312,22 @@ object CtxtVectors {
     }
     allEqual
   }
-
-  /** Max number of nonzero entries used in computing hash code. */
-  private[linalg] val MAX_HASH_NNZ = 128
 }
 
 /**
-  * A dense vector represented by a value array.
-  */
+ * A dense vector represented by a value array.
+ */
 @Since("2.0.0")
-class CtxtDenseVector @Since("2.0.0") ( @Since("2.0.0") val values: Array[String])
+class CtxtDenseVector @Since("2.0.0")(@Since("2.0.0") val values: Array[String])
   extends CtxtVector {
-
-  override def size: Int = values.length
 
   override def toString: String = values.mkString("[", ",", "]")
 
   override def toArray: Array[String] = values
 
-  // private[spark] override def asBreeze: BV[Double] = new BDV[Double](values)
-
   override def apply(i: Int): String = values(i)
+
+  // private[spark] override def asBreeze: BV[Double] = new BDV[Double](values)
 
   override def copy: CtxtDenseVector = {
     new CtxtDenseVector(values.clone())
@@ -361,6 +363,8 @@ class CtxtDenseVector @Since("2.0.0") ( @Since("2.0.0") val values: Array[String
     }
     result
   }
+
+  override def size: Int = values.length
 
   // override def numActives: Int = size
 

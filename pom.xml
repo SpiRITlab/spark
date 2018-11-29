@@ -224,7 +224,23 @@
     <spark.test.home>${session.executionRootDirectory}</spark.test.home>
 
     <CodeCacheSize>512m</CodeCacheSize>
+
+    <!--<sparkfhe.maven.repo>file://${project.basedir}/../../../SparkFHEMavenRepo</sparkfhe.maven.repo>-->
   </properties>
+
+  <!--<distributionManagement>-->
+    <!--<repository>-->
+      <!--<id>release</id>-->
+      <!--<url>${sparkfhe.maven.repo}</url>-->
+      <!--<uniqueVersion>false</uniqueVersion>-->
+    <!--</repository>-->
+    <!--<snapshotRepository>-->
+      <!--<id>snapshot</id>-->
+      <!--<url>${sparkfhe.maven.repo}</url>-->
+      <!--<uniqueVersion>true</uniqueVersion>-->
+    <!--</snapshotRepository>-->
+  <!--</distributionManagement>-->
+
   <repositories>
     <repository>
       <id>central</id>

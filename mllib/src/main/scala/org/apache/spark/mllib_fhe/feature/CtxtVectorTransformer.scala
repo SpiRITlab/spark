@@ -23,28 +23,28 @@ import org.apache.spark.mllib_fhe.linalg.CtxtVector
 import org.apache.spark.rdd.RDD
 
 /**
-  * :: DeveloperApi ::
-  * Trait for transformation of a vector
-  */
+ * :: DeveloperApi ::
+ * Trait for transformation of a vector
+ */
 @Since("1.1.0")
 @DeveloperApi
 trait CtxtVectorTransformer extends Serializable {
 
   /**
-    * Applies transformation on a vector.
-    *
-    * @param vector vector to be transformed.
-    * @return transformed vector.
-    */
+   * Applies transformation on a vector.
+   *
+   * @param vector vector to be transformed.
+   * @return transformed vector.
+   */
   @Since("1.1.0")
   def transform(vector: CtxtVector): CtxtVector
 
   /**
-    * Applies transformation on an RDD[Vector].
-    *
-    * @param data RDD[Vector] to be transformed.
-    * @return transformed RDD[Vector].
-    */
+   * Applies transformation on an RDD[Vector].
+   *
+   * @param data RDD[Vector] to be transformed.
+   * @return transformed RDD[Vector].
+   */
   @Since("1.1.0")
   def transform(data: RDD[CtxtVector]): RDD[CtxtVector] = {
     // Later in #1498 , all RDD objects are sent via broadcasting instead of RPC.
@@ -53,11 +53,11 @@ trait CtxtVectorTransformer extends Serializable {
   }
 
   /**
-    * Applies transformation on a JavaRDD[Vector].
-    *
-    * @param data JavaRDD[Vector] to be transformed.
-    * @return transformed JavaRDD[Vector].
-    */
+   * Applies transformation on a JavaRDD[Vector].
+   *
+   * @param data JavaRDD[Vector] to be transformed.
+   * @return transformed JavaRDD[Vector].
+   */
   @Since("1.1.0")
   def transform(data: JavaRDD[CtxtVector]): JavaRDD[CtxtVector] = {
     transform(data.rdd)

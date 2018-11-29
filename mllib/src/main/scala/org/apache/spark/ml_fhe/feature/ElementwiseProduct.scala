@@ -28,21 +28,22 @@ import org.apache.spark.sql.types.DataType
 
 
 /**
-  * Outputs the Hadamard product (i.e., the element-wise product) of each input vector with a
-  * provided "weight" vector.  In other words, it scales each column of the dataset by a scalar
-  * multiplier.
-  */
+ * Outputs the Hadamard product (i.e., the element-wise product) of each input vector with a
+ * provided "weight" vector.  In other words, it scales each column of the dataset by a scalar
+ * multiplier.
+ */
 @Since("1.4.0")
-class ElementwiseProduct @Since("1.4.0") (@Since("1.4.0") override val uid: String)
+class ElementwiseProduct @Since("1.4.0")(@Since("1.4.0") override val uid: String)
   extends UnaryTransformer[CtxtVector, CtxtVector, ElementwiseProduct] with DefaultParamsWritable {
 
   @Since("1.4.0")
   def this() = this(Identifiable.randomUID("elemProd"))
 
   /**
-    * the vector to multiply with input vectors
-    * @group param
-    */
+   * the vector to multiply with input vectors
+   *
+   * @group param
+   */
   @Since("2.0.0")
   val scalingVec: Param[CtxtVector] = new Param(this, "scalingVec", "vector for hadamard product")
 

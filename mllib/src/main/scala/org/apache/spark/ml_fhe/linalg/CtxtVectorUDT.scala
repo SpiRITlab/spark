@@ -24,9 +24,9 @@ import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 /**
-  * User-defined type for [[CtxtVector]] in [[org.apache.spark.mllib-local]] which allows
-  * easy interaction with SQL via [[org.apache.spark.sql.Dataset]].
-  */
+ * User-defined type for [[CtxtVector]] in [[org.apache.spark.mllib-local]] which allows
+ * easy interaction with SQL via [[org.apache.spark.sql.Dataset]].
+ */
 private[spark] class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
 
   override final def sqlType: StructType = _sqlType
@@ -51,7 +51,7 @@ private[spark] class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
         val tpe = row.getByte(0)
         tpe match {
           case 1 =>
-            val values = row.getArray(3).toArray[UTF8String](StringType).map { x => x.toString}
+            val values = row.getArray(3).toArray[UTF8String](StringType).map { x => x.toString }
             new CtxtDenseVector(values)
         }
     }

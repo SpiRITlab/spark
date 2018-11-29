@@ -23,9 +23,9 @@ import java.util
 import scala.annotation.varargs
 import scala.language.implicitConversions
 
-import spiritlab.sparkfhe.common.{SparkFHE, SparkFHEConstants, StringVector}
+import spiritlab.sparkfhe.api.{SparkFHE, SparkFHEConstants, StringVector}
 
-import org.apache.spark .annotation.{AlphaComponent, Since}
+import org.apache.spark.annotation.{AlphaComponent, Since}
 import org.apache.spark.ml_fhe.{linalg => newlinalg}
 import org.apache.spark.mllib.util.NumericParser
 import org.apache.spark.sql.catalyst.InternalRow
@@ -36,23 +36,23 @@ import org.apache.spark.unsafe.types.UTF8String
 
 
 /**
-  * Represents a numeric vector, whose index type is Int and value type is Double.
-  *
-  * @note Users should not implement this interface.
-  */
+ * Represents a numeric vector, whose index type is Int and value type is Double.
+ *
+ * @note Users should not implement this interface.
+ */
 @SQLUserDefinedType(udt = classOf[CtxtVectorUDT])
 @Since("1.0.0")
 sealed trait CtxtVector extends Serializable {
 
   /**
-    * Size of the vector.
-    */
+   * Size of the vector.
+   */
   @Since("1.0.0")
   def size: Int
 
   /**
-    * Converts the instance to a double array.
-    */
+   * Converts the instance to a double array.
+   */
   @Since("1.0.0")
   def toArray: Array[String]
 
@@ -68,9 +68,9 @@ sealed trait CtxtVector extends Serializable {
   }
 
   /**
-    * Returns a hash code value for the vector. The hash code is based on its size and its first 128
-    * nonzero entries, using a hash algorithm similar to `java.util.Arrays.hashCode`.
-    */
+   * Returns a hash code value for the vector. The hash code is based on its size and its first 128
+   * nonzero entries, using a hash algorithm similar to `java.util.Arrays.hashCode`.
+   */
   override def hashCode(): Int = {
     // This is a reference implementation. It calls return in foreachActive, which is slow.
     // Subclasses should override it with optimized implementation.
@@ -93,59 +93,60 @@ sealed trait CtxtVector extends Serializable {
   }
 
   /**
-    * Converts the instance to a breeze vector.
-    */
+   * Converts the instance to a breeze vector.
+   */
   // private[spark] def asBreeze: BV[Double]
 
   /**
-    * Gets the value of the ith element.
-    * @param i index
-    */
+   * Gets the value of the ith element.
+   *
+   * @param i index
+   */
   @Since("1.1.0")
   def apply(i: Int): String = this.toArray(i)
 
   /**
-    * Makes a deep copy of this vector.
-    */
+   * Makes a deep copy of this vector.
+   */
   @Since("1.1.0")
   def copy: CtxtVector = {
     throw new NotImplementedError(s"copy is not implemented for ${this.getClass}.")
   }
 
   /**
-    * Applies a function `f` to all the active elements of dense and sparse vector.
-    *
-    * @param f the function takes two parameters where the first parameter is the index of
-    *          the vector with type `Int`, and the second parameter is the corresponding value
-    *          with type `Double`.
-    */
+   * Applies a function `f` to all the active elements of dense and sparse vector.
+   *
+   * @param f the function takes two parameters where the first parameter is the index of
+   *          the vector with type `Int`, and the second parameter is the corresponding value
+   *          with type `Double`.
+   */
   @Since("1.6.0")
   def foreachActive(f: (Int, String) => Unit): Unit
 
   /**
-    * Number of active entries.  An "active entry" is an element which is explicitly stored,
-    * regardless of its value.
-    *
-    * @note Inactive entries have value 0.
-    */
+   * Number of active entries.  An "active entry" is an element which is explicitly stored,
+   * regardless of its value.
+   *
+   * @note Inactive entries have value 0.
+   */
   /* @Since("1.4.0")
   def numActives: Int */
 
   /**
-    * Number of nonzero elements. This scans all active values and count nonzeros.
-    */
+   * Number of nonzero elements. This scans all active values and count nonzeros.
+   */
   @Since("1.4.0")
   def numNonzeros: String
 
   /**
-    * Converts this vector to a dense vector.
-    */
+   * Converts this vector to a dense vector.
+   */
   @Since("1.4.0")
   def toDense: CtxtDenseVector = new CtxtDenseVector(this.toArray)
 
   /**
-    * Returns a vector in either dense or sparse format, whichever uses less storage.
-    */
+   * Returns a vector in either dense or sparse format, whichever uses less storage.
+   */
   /* @Since("1.4.0")
   def compressed: CtxtVector = {
     val nnz = numNonzeros
@@ -154,32 +155,32 @@ sealed trait CtxtVector extends Serializable {
   } */
 
   /**
-    * Find the index of a maximal element.  Returns the first maximal element in case of a tie.
-    * Returns -1 if vector has length 0.
-    */
+   * Find the index of a maximal element.  Returns the first maximal element in case of a tie.
+   * Returns -1 if vector has length 0.
+   */
   /* @Since("1.5.0")
   def argmax: Int */
 
   /**
-    * Converts the vector to a JSON string.
-    */
+   * Converts the vector to a JSON string.
+   */
   /* @Since("1.6.0")
   def toJson: String */
 
   /**
-    * Convert this vector to the new mllib-local representation.
-    * This does NOT copy the data; it copies references.
-    */
+   * Convert this vector to the new mllib-local representation.
+   * This does NOT copy the data; it copies references.
+   */
   @Since("2.0.0")
   def asML: newlinalg.CtxtVector
 }
 
 /**
-  * :: AlphaComponent ::
-  *
-  * User-defined type for [[CtxtVector]] which allows easy interaction with SQL
-  * via [[org.apache.spark.sql.Dataset]].
-  */
+ * :: AlphaComponent ::
+ *
+ * User-defined type for [[CtxtVector]] which allows easy interaction with SQL
+ * via [[org.apache.spark.sql.Dataset]].
+ */
 @AlphaComponent
 class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
 
@@ -216,7 +217,7 @@ class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
         val tpe = row.getByte(0)
         tpe match {
           case 1 =>
-            val values = row.getArray(3).toArray[UTF8String](StringType).map { x => x.toString}
+            val values = row.getArray(3).toArray[UTF8String](StringType).map { x => x.toString }
             new CtxtDenseVector(values)
         }
     }
@@ -242,16 +243,16 @@ class CtxtVectorUDT extends UserDefinedType[CtxtVector] {
 }
 
 /**
-  * Factory methods for [[org.apache.spark.mllib_fhe.linalg.CtxtVector]].
-  * We don't use the name `Vector` because Scala imports
-  * `scala.collection.immutable.Vector` by default.
-  */
+ * Factory methods for [[org.apache.spark.mllib_fhe.linalg.CtxtVector]].
+ * We don't use the name `Vector` because Scala imports
+ * `scala.collection.immutable.Vector` by default.
+ */
 @Since("1.0.0")
 object CtxtVectors {
 
   /**
-    * Creates a dense vector from its values.
-    */
+   * Creates a dense vector from its values.
+   */
   @Since("1.0.0")
   @varargs
   def dense(firstValue: String, otherValues: String*): CtxtVector =
@@ -259,33 +260,33 @@ object CtxtVectors {
 
   // A dummy implicit is used to avoid signature collision with the one generated by @varargs.
   /**
-    * Creates a dense vector from a double array.
-    */
+   * Creates a dense vector from a double array.
+   */
   @Since("1.0.0")
   def dense(values: Array[String]): CtxtVector = new CtxtDenseVector(values)
 
   /**
-    * Creates a vector of all zeros.
-    *
-    * @param size vector size
-    * @return a zero vector
-    */
+   * Creates a vector of all zeros.
+   *
+   * @param size vector size
+   * @return a zero vector
+   */
   @Since("1.1.0")
   def zeros(size: Int): CtxtVector = {
     new CtxtDenseVector(new Array[String](size))
   }
 
   /**
-    * Parses a string resulted from `CtxtVector.toString` into a [[CtxtVector]].
-    */
+   * Parses a string resulted from `CtxtVector.toString` into a [[CtxtVector]].
+   */
   /* @Since("1.1.0")
   def parse(s: String): CtxtVector = {
     parseNumeric(NumericParser.parse(s))
   } */
 
   /**
-    * Parses the JSON representation of a vector into a [[CtxtVector]].
-    */
+   * Parses the JSON representation of a vector into a [[CtxtVector]].
+   */
   /* @Since("1.6.0")
   def fromJson(json: String): CtxtVector = {
     implicit val formats = DefaultFormats
@@ -309,8 +310,8 @@ object CtxtVectors {
   } */
 
   /**
-    * Creates a vector instance from a breeze vector.
-    */
+   * Creates a vector instance from a breeze vector.
+   */
   /* private[spark] def fromBreeze(breezeVector: BV[Double]): CtxtVector = {
     breezeVector match {
       case v: BDV[Double] =>
@@ -325,11 +326,12 @@ object CtxtVectors {
   } */
 
   /**
-    * Returns the p-norm of this vector.
-    * @param vector input vector.
-    * @param p norm.
-    * @return norm in L^p^ space.
-    */
+   * Returns the p-norm of this vector.
+   *
+   * @param vector input vector.
+   * @param p      norm.
+   * @return norm in L^p^ space.
+   */
   /* @Since("1.3.0")
   def norm(vector: CtxtVector, p: Double): Double = {
     require(p >= 1.0, "To compute the p-norm of the vector, we require that you specify a p>=1. " +
@@ -377,11 +379,12 @@ object CtxtVectors {
   } */
 
   /**
-    * Returns the squared distance between two Vectors.
-    * @param v1 first Vector.
-    * @param v2 second Vector.
-    * @return squared distance between two Vectors.
-    */
+   * Returns the squared distance between two Vectors.
+   *
+   * @param v1 first Vector.
+   * @param v2 second Vector.
+   * @return squared distance between two Vectors.
+   */
   @Since("1.3.0")
   def sqdist(v1: CtxtVector, v2: CtxtVector): String = {
     require(v1.size == v2.size, s"Vector dimensions do not match: Dim(v1)=${v1.size} and Dim(v2)" +
@@ -408,8 +411,8 @@ object CtxtVectors {
   }
 
   /**
-    * Check equality between sparse/dense vectors
-    */
+   * Check equality between sparse/dense vectors
+   */
   private[mllib_fhe] def equals(
                                  v1Indices: IndexedSeq[Int],
                                  v1Values: Array[String],
@@ -438,8 +441,8 @@ object CtxtVectors {
   private[linalg] val MAX_HASH_NNZ = 128
 
   /**
-    * Convert new linalg type to spark.mllib type.  Light copy; only copies references
-    */
+   * Convert new linalg type to spark.mllib type.  Light copy; only copies references
+   */
   @Since("2.0.0")
   def fromML(v: newlinalg.CtxtVector): CtxtVector = v match {
     case dv: newlinalg.CtxtDenseVector =>
@@ -448,12 +451,12 @@ object CtxtVectors {
 }
 
 /**
-  * A dense vector represented by a value array.
-  */
+ * A dense vector represented by a value array.
+ */
 @Since("1.0.0")
 @SQLUserDefinedType(udt = classOf[CtxtVectorUDT])
-class CtxtDenseVector @Since("1.0.0") (
-                                        @Since("1.0.0") val values: Array[String]) extends CtxtVector {
+class CtxtDenseVector @Since("1.0.0")(
+                                       @Since("1.0.0") val values: Array[String]) extends CtxtVector {
 
   @Since("1.0.0")
   override def size: Int = values.length
@@ -565,8 +568,8 @@ object CtxtDenseVector {
   def unapply(dv: CtxtDenseVector): Option[Array[String]] = Some(dv.values)
 
   /**
-    * Convert new linalg type to spark.mllib type.  Light copy; only copies references
-    */
+   * Convert new linalg type to spark.mllib type.  Light copy; only copies references
+   */
   @Since("2.0.0")
   def fromML(v: newlinalg.CtxtDenseVector): CtxtDenseVector = {
     new CtxtDenseVector(v.values)
@@ -574,10 +577,10 @@ object CtxtDenseVector {
 }
 
 /**
-  * Implicit methods available in Scala for converting
-  * [[org.apache.spark.mllib_fhe.linalg.CtxtVector]]
-  * to [[org.apache.spark.ml_fhe.linalg.CtxtVector]] and vice versa.
-  */
+ * Implicit methods available in Scala for converting
+ * [[org.apache.spark.mllib_fhe.linalg.CtxtVector]]
+ * to [[org.apache.spark.ml_fhe.linalg.CtxtVector]] and vice versa.
+ */
 private[spark] object CtxtVectorImplicits {
 
   implicit def mllibVectorToMLVector(v: CtxtVector): newlinalg.CtxtVector = v.asML

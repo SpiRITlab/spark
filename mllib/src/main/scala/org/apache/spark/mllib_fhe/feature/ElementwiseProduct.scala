@@ -17,27 +17,28 @@
 
 package org.apache.spark.mllib_fhe.feature
 
-import spiritlab.sparkfhe.common.{SparkFHE, SparkFHEConstants}
+import spiritlab.sparkfhe.api.{SparkFHE, SparkFHEConstants}
 
 import org.apache.spark.annotation.Since
 import org.apache.spark.mllib_fhe.linalg._
 
 /**
-  * Outputs the Hadamard product (i.e., the element-wise product) of each input vector with a
-  * provided "weight" vector. In other words, it scales each column of the dataset by a scalar
-  * multiplier.
-  * @param scalingVec The values used to scale the reference vector's individual components.
-  */
+ * Outputs the Hadamard product (i.e., the element-wise product) of each input vector with a
+ * provided "weight" vector. In other words, it scales each column of the dataset by a scalar
+ * multiplier.
+ *
+ * @param scalingVec The values used to scale the reference vector's individual components.
+ */
 @Since("1.4.0")
 class ElementwiseProduct @Since("1.4.0")(
                                           @Since("1.4.0") val scalingVec: CtxtVector) extends CtxtVectorTransformer {
 
   /**
-    * Does the hadamard product transformation.
-    *
-    * @param vector vector to be transformed.
-    * @return transformed vector.
-    */
+   * Does the hadamard product transformation.
+   *
+   * @param vector vector to be transformed.
+   * @return transformed vector.
+   */
   @Since("1.4.0")
   override def transform(vector: CtxtVector): CtxtVector = {
     require(vector.size == scalingVec.size,
