@@ -110,7 +110,9 @@ sealed trait CtxtVector extends Serializable {
    */
   @Since("1.1.0")
   def copy: CtxtVector = {
+    // scalastyle:off throwerror
     throw new NotImplementedError(s"copy is not implemented for ${this.getClass}.")
+    // scalastyle:on throwerror
   }
 
   /**
@@ -455,8 +457,8 @@ object CtxtVectors {
  */
 @Since("1.0.0")
 @SQLUserDefinedType(udt = classOf[CtxtVectorUDT])
-class CtxtDenseVector @Since("1.0.0")(
-                                       @Since("1.0.0") val values: Array[String]) extends CtxtVector {
+class CtxtDenseVector @Since("1.0.0")
+  (@Since("1.0.0") val values: Array[String]) extends CtxtVector {
 
   @Since("1.0.0")
   override def size: Int = values.length

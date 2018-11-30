@@ -30,8 +30,8 @@ import org.apache.spark.mllib_fhe.linalg._
  * @param scalingVec The values used to scale the reference vector's individual components.
  */
 @Since("1.4.0")
-class ElementwiseProduct @Since("1.4.0")(
-                                          @Since("1.4.0") val scalingVec: CtxtVector) extends CtxtVectorTransformer {
+class ElementwiseProduct @Since("1.4.0")
+  (@Since("1.4.0") val scalingVec: CtxtVector) extends CtxtVectorTransformer {
 
   /**
    * Does the hadamard product transformation.
