@@ -225,7 +225,7 @@
 
     <CodeCacheSize>512m</CodeCacheSize>
 
-    <sparkfhe.maven.repo>file://${user.dir}/../../../SparkFHEMavenRepo</sparkfhe.maven.repo>
+    <sparkfhe.maven.repo>file://${user.dir}/../../../SparkFHE-Maven-Repo</sparkfhe.maven.repo>
   </properties>
 
   <distributionManagement>
@@ -242,6 +242,10 @@
   </distributionManagement>
 
   <repositories>
+    <repository>
+      <id>sparkfhe-remote</id>
+      <url>https://github.com/SpiRITlab/SparkFHE-Maven-Repo/raw/master</url>
+    </repository>
     <repository>
       <id>central</id>
       <!-- This should be at top, it makes maven try the central repo first and then others and hence faster dep resolution -->
@@ -1988,6 +1992,7 @@
   </dependencyManagement>
 
   <build>
+    <finalName>${project.artifactId}-${project.version}-sparkfhe</finalName>
     <pluginManagement>
       <plugins>
         <plugin>
@@ -2751,6 +2756,7 @@
         <scala.binary.version>2.11</scala.binary.version>
       </properties>
       <build>
+        <finalName>sparkfhe-${project.artifactId}</finalName>
         <plugins>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
