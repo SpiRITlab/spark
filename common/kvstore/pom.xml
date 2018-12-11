@@ -14,13 +14,15 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
+
+  This file has been modified by the SparkFHE team for research purpose.
   -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.apache.spark</groupId>
+    <groupId>spiritlab.sparkfhe.research</groupId>
     <artifactId>spark-parent_2.12</artifactId>
     <version>3.0.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
@@ -36,7 +38,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.spark</groupId>
+      <groupId>spiritlab.sparkfhe.research</groupId>
       <artifactId>spark-tags_${scala.binary.version}</artifactId>
     </dependency>
 
@@ -92,7 +94,7 @@
       them will yield errors.
     -->
     <dependency>
-      <groupId>org.apache.spark</groupId>
+      <groupId>spiritlab.sparkfhe.research</groupId>
       <artifactId>spark-tags_${scala.binary.version}</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
