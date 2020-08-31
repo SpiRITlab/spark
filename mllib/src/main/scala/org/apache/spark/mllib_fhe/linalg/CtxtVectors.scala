@@ -23,7 +23,7 @@ import java.util
 import scala.annotation.varargs
 import scala.language.implicitConversions
 
-import spiritlab.sparkfhe.common.{SparkFHE, SparkFHEConstants, StringVector}
+import spiritlab.sparkfhe.api.{SparkFHE, SparkFHEConstants, StringVector}
 
 import org.apache.spark .annotation.{AlphaComponent, Since}
 import org.apache.spark.ml_fhe.{linalg => newlinalg}
@@ -324,12 +324,12 @@ object CtxtVectors {
     }
   } */
 
-  /**
-   * Returns the p-norm of this vector.
-   * @param vector input vector.
-   * @param p norm.
-   * @return norm in L^p^ space.
-   */
+//  /**
+//   * Returns the p-norm of this vector.
+//   * @param vector input vector.
+//   * @param p norm.
+//   * @return norm in L^p^ space.
+//   */
   /* @Since("1.3.0")
   def norm(vector: CtxtVector, p: Double): Double = {
     require(p >= 1.0, "To compute the p-norm of the vector, we require that you specify a p>=1. " +
