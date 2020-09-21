@@ -17,8 +17,13 @@
 
 package org.apache.spark.mllib_fhe.linalg
 
-import org.apache.spark.annotation.Since
-import spiritlab.sparkfhe.api.{SparkFHE, SparkFHEConstants}
+import org.apache.spark.annotation.{AlphaComponent, Since}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.util.ArrayData
+import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
+import spiritlab.sparkfhe.api.SparkFHE
 
 sealed trait CtxtMatrix extends Serializable {
 
@@ -50,6 +55,63 @@ sealed trait CtxtMatrix extends Serializable {
 
 }
 
+@AlphaComponent
+private[spark] class CtxtMatrixUDT extends UserDefinedType[CtxtMatrix] {
+  /** Underlying storage type for this UDT */
+  override def sqlType: StructType = {
+    StructType(Seq(
+      StructField("type", ByteType, nullable = false),
+      StructField("numRows", IntegerType, nullable = false),
+      StructField("numCols", IntegerType, nullable = false),
+      StructField("isTransposed", BooleanType, nullable = false),
+      StructField("values", ArrayType(IntegerType, containsNull = false)),
+      StructField("colPtrs", ArrayType(IntegerType, containsNull = false)),
+      StructField("rowIndices", ArrayType(IntegerType, containsNull = false))
+    ))
+  }
+
+  /**
+   * Convert the user type to a SQL datum
+   */
+  override def serialize(obj: CtxtMatrix): InternalRow = {
+    obj match {
+      case CtxtDenseMatrix(numRows, numCols, values: Array[String], isTransposed) =>
+        val row = new GenericInternalRow(size = 7)
+        row.setByte(0, 1)
+        row.setInt(1, numRows)
+        row.setInt(2, numCols)
+        row.setBoolean(3, isTransposed)
+        row.update(4, ArrayData.toArrayData(values.map {UTF8String.fromString}))
+        row.setNullAt(5)
+        row.setNullAt(6)
+        row
+    }
+  }
+
+  /** Convert a SQL datum to the user type */
+  override def deserialize(datum: Any): CtxtMatrix = {
+    datum match {
+      case row: InternalRow =>
+        require(row.numFields == 7, s"CtxtMatrixUDT.deserialize given row with " +
+          s"length ${row.numFields} but requires length == 7")
+        row.getByte(0) match {
+          case 1 =>
+            val numRows = row.getInt(1)
+            val numCols = row.getInt(2)
+            val isTransposed = row.getBoolean(3)
+            val values = row.getArray(4).toArray[UTF8String](StringType).map(x => x.toString)
+            CtxtMatrices.dense(numRows, numCols, values, isTransposed)
+        }
+    }
+  }
+
+  /**
+   * Class object for the UserType
+   */
+  override def userClass: Class[CtxtMatrix] = classOf[CtxtMatrix]
+}
+
+@SQLUserDefinedType(udt = classOf[CtxtMatrixUDT])
 class CtxtDenseMatrix @Since("1.3.0") (
         @Since("1.0.0") val numRows: Int,
         @Since("1.0.0") val numCols: Int,
@@ -83,12 +145,18 @@ class CtxtDenseMatrix @Since("1.3.0") (
 
     val result = new Array[String](numRows * y.numCols)
     for (i <- 0 until numRows; j <- 0 until y.numCols; k <- 0 until numCols) {
-      result(index(i, j)) = SparkFHE.getInstance().do_FHE_basic_op(result(index(i, j)),
-      SparkFHE.getInstance().do_FHE_basic_op(values(index(i, k)), y(k, j),
-        SparkFHEConstants.FHE_MULTIPLY),
-        SparkFHEConstants.FHE_ADD)
+      // result[i, j] += values[i, k] * y[k, j]
+      // TODO: Using pairwise multiply could be more efficient
+      result(index(i, j)) = SparkFHE.getInstance().fhe_add(result(index(i, j)),
+        SparkFHE.getInstance().fhe_multiply(values(index(i, k)), y(k, j)))
     }
     CtxtMatrices.dense(numRows, y.numCols, result, false)
+  }
+}
+
+object CtxtDenseMatrix {
+  def unapply(arg: CtxtDenseMatrix): Option[(Int, Int, Array[String], Boolean)] = {
+    Some(arg.numRows, arg.numCols, arg.values, arg.isTransposed)
   }
 }
 

@@ -75,9 +75,8 @@ class ElementWiseProductMatrix (val scalingMatrix: CtxtMatrix) extends CtxtMatri
         val result = new Array[String](matrix.numRows * matrix.numCols)
         val matrixArray = matrix.toArray
         val scalingMatrixArray = scalingMatrix.toArray
-        for (i <- 0 until result.length) {
-          result(i) = SparkFHE.getInstance().do_FHE_basic_op(matrixArray(i),
-            scalingMatrixArray(i), SparkFHEConstants.FHE_MULTIPLY)
+        for (i <- result.indices) {
+          result(i) = SparkFHE.getInstance().fhe_multiply(matrixArray(i), scalingMatrixArray(i))
         }
         CtxtMatrices.dense(matrix.numRows, matrix.numCols, result, false)
       case v => throw new IllegalArgumentException("Does not support matrix type " + v.getClass)
