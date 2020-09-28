@@ -17,13 +17,14 @@
 
 package org.apache.spark.mllib_fhe.linalg
 
+import spiritlab.sparkfhe.api.SparkFHE
+
 import org.apache.spark.annotation.{AlphaComponent, Since}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import spiritlab.sparkfhe.api.SparkFHE
 
 sealed trait CtxtMatrix extends Serializable {
 
@@ -144,6 +145,7 @@ class CtxtDenseMatrix @Since("1.3.0") (
       s"this: ${numCols}, y: ${y.numRows}")
 
     val result = new Array[String](numRows * y.numCols)
+    // SparkFHE.getInstance().dense_matrix_multiply(values, y.values)
     for (i <- 0 until numRows; j <- 0 until y.numCols; k <- 0 until numCols) {
       // result[i, j] += values[i, k] * y[k, j]
       // TODO: Using pairwise multiply could be more efficient
@@ -156,7 +158,7 @@ class CtxtDenseMatrix @Since("1.3.0") (
 
 object CtxtDenseMatrix {
   def unapply(arg: CtxtDenseMatrix): Option[(Int, Int, Array[String], Boolean)] = {
-    Some(arg.numRows, arg.numCols, arg.values, arg.isTransposed)
+    Some((arg.numRows, arg.numCols, arg.values, arg.isTransposed))
   }
 }
 
