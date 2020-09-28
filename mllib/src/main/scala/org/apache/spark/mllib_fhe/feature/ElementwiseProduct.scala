@@ -57,6 +57,30 @@ class ElementwiseProduct @Since("1.4.0")
       case v => throw new IllegalArgumentException("Does not support vector type " + v.getClass)
     }
   }
+}
 
+class ElementWiseProductMatrix (val scalingMatrix: CtxtMatrix) extends CtxtMatrixTransformer {
+  /**
+   * Applies transformation on a matrix.
+   *
+   * @param matrix matrix to be transformed.
+   * @return transformed matrix.
+   */
+  override def transform(matrix: CtxtMatrix): CtxtMatrix = {
+    require((matrix.numCols == scalingMatrix.numCols) && (matrix.numRows == scalingMatrix.numRows),
+    s"matrix dimensions do not match: matrix[${matrix.numRows}, ${matrix.numCols}], " +
+      s"scalingMatrix[${scalingMatrix.numRows}, ${scalingMatrix.numCols}]")
 
+    matrix match {
+      case dm: CtxtDenseMatrix =>
+        val result = new Array[String](matrix.numRows * matrix.numCols)
+        val matrixArray = matrix.toArray
+        val scalingMatrixArray = scalingMatrix.toArray
+        for (i <- result.indices) {
+          result(i) = SparkFHE.getInstance().fhe_multiply(matrixArray(i), scalingMatrixArray(i))
+        }
+        CtxtMatrices.dense(matrix.numRows, matrix.numCols, result, false)
+      case v => throw new IllegalArgumentException("Does not support matrix type " + v.getClass)
+    }
+  }
 }
