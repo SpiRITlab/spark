@@ -76,6 +76,7 @@ private[deploy] object DependencyUtils extends Logging {
 
   def addJarsToClassPath(jars: String, loader: MutableURLClassLoader): Unit = {
     if (jars != null) {
+      logWarning(s"addJarsToClassPath: Local jars $jars...")
       for (jar <- jars.split(",")) {
         addJarToClasspath(jar, loader)
       }
@@ -161,7 +162,7 @@ private[deploy] object DependencyUtils extends Logging {
         if (file.exists()) {
           loader.addURL(file.toURI.toURL)
         } else {
-          logWarning(s"Local jar $file does not exist, skipping.")
+          logWarning(s"addJarToClasspath(mod2): Local jar $file does not exist, skipping.")
         }
       case _ =>
         logWarning(s"Skip remote jar $uri.")

@@ -29,7 +29,6 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.{Failure, Properties, Success, Try}
-
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.conf.{Configuration => HadoopConfiguration}
@@ -47,9 +46,9 @@ import org.apache.ivy.core.settings.IvySettings
 import org.apache.ivy.plugins.matcher.GlobPatternMatcher
 import org.apache.ivy.plugins.repository.file.FileRepository
 import org.apache.ivy.plugins.resolver.{ChainResolver, FileSystemResolver, IBiblioResolver}
-
 import org.apache.spark._
 import org.apache.spark.api.r.RUtils
+import org.apache.spark.deploy.DependencyUtils.logWarning
 import org.apache.spark.deploy.rest._
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
@@ -81,8 +80,19 @@ private[spark] class SparkSubmit extends Logging {
     // Initialize logging if it hasn't been done yet. Keep track of whether logging needs to
     // be reset before the application starts.
     val uninitLog = initializeLogIfNecessary(true, silent = true)
+    var tmpArgs = ArrayBuffer[String]()
+    for (arg <- args) {
+      // logWarning(s"doSubmit(1): $arg")
+      if (arg != "--py-files") {
+        tmpArgs += arg
+      }
+    }
 
-    val appArgs = parseArguments(args)
+    for (arg <- tmpArgs) {
+      logWarning(s"doSubmit(2): $arg")
+    }
+    val appArgs = parseArguments(tmpArgs.toArray)
+    logWarning(s"doSubmit(3): ${appArgs.primaryResource}")
     if (appArgs.verbose) {
       logInfo(appArgs.toString)
     }
@@ -154,7 +164,7 @@ private[spark] class SparkSubmit extends Logging {
    */
   @tailrec
   private def submit(args: SparkSubmitArguments, uninitLog: Boolean): Unit = {
-
+    logWarning(s"runMain(moda1): ${args.primaryResource}")
     def doRunMain(): Unit = {
       if (args.proxyUser != null) {
         val proxyUser = UserGroupInformation.createProxyUser(args.proxyUser,
@@ -227,6 +237,8 @@ private[spark] class SparkSubmit extends Logging {
     val sparkConf = args.toSparkConf()
     var childMainClass = ""
 
+    logWarning(s"prepareSubmitEnvironment(mod2.0.0): ${args.primaryResource}")
+
     // Set the cluster manager
     val clusterManager: Int = args.master match {
       case "yarn" => YARN
@@ -239,6 +251,8 @@ private[spark] class SparkSubmit extends Logging {
         -1
     }
 
+    logWarning(s"prepareSubmitEnvironment(mod3.0.0): ${args.master}  <-> $clusterManager")
+
     // Set the deploy mode; default is client mode
     var deployMode: Int = args.deployMode match {
       case "client" | null => CLIENT
@@ -247,6 +261,8 @@ private[spark] class SparkSubmit extends Logging {
         error("Deploy mode must be either client or cluster")
         -1
     }
+
+    logWarning(s"prepareSubmitEnvironment(mod3.0.1): ${args.deployMode}  <-> $deployMode")
 
     if (clusterManager == YARN) {
       // Make sure YARN is included in our build if we're trying to use it
@@ -266,7 +282,8 @@ private[spark] class SparkSubmit extends Logging {
             "This copy of Spark may not have been compiled with KUBERNETES support.")
       }
     }
-
+    logWarning(s"prepareSubmitEnvironment(mod2.0.1): ${args.primaryResource}")
+    logWarning(s"prepareSubmitEnvironment(mod3.0.2): $clusterManager  <-> $deployMode")
     // Fail fast, the following modes are not supported or applicable
     (clusterManager, deployMode) match {
       case (STANDALONE, CLUSTER) if args.isPython =>
@@ -285,13 +302,15 @@ private[spark] class SparkSubmit extends Logging {
         error("Cluster deploy mode is not applicable to Spark Thrift server.")
       case _ =>
     }
-
+    logWarning(s"prepareSubmitEnvironment(mod2.0.2): ${args.primaryResource}")
+    logWarning(s"prepareSubmitEnvironment(mod3.0.3): ${args.deployMode}  <-> $deployMode")
     // Update args.deployMode if it is null. It will be passed down as a Spark property later.
     (args.deployMode, deployMode) match {
       case (null, CLIENT) => args.deployMode = "client"
       case (null, CLUSTER) => args.deployMode = "cluster"
       case _ =>
     }
+    logWarning(s"prepareSubmitEnvironment(mod3.1): ${args.jars}")
     val isYarnCluster = clusterManager == YARN && deployMode == CLUSTER
     val isMesosCluster = clusterManager == MESOS && deployMode == CLUSTER
     val isStandAloneCluster = clusterManager == STANDALONE && deployMode == CLUSTER
@@ -316,6 +335,7 @@ private[spark] class SparkSubmit extends Logging {
         if (isKubernetesClusterModeDriver) {
           val loader = getSubmitClassLoader(sparkConf)
           for (jar <- resolvedMavenCoordinates.split(",")) {
+            logWarning(s"prepareSubmitEnvironment(mod1): $jar.")
             addJarToClasspath(jar, loader)
           }
         } else if (isKubernetesCluster) {
@@ -329,7 +349,7 @@ private[spark] class SparkSubmit extends Logging {
           }
         }
       }
-
+      logWarning(s"prepareSubmitEnvironment(mod2.0.3): ${args.primaryResource}")
       // install any R packages that may have been passed through --jars or --packages.
       // Spark Packages may contain R source code inside the jar.
       if (args.isR && !StringUtils.isBlank(args.jars)) {
@@ -366,7 +386,7 @@ private[spark] class SparkSubmit extends Logging {
     args.archives = Option(args.archives).map(resolveGlobPaths(_, hadoopConf)).orNull
 
     lazy val secMgr = new SecurityManager(sparkConf)
-
+    logWarning(s"prepareSubmitEnvironment(mod3.1): ${args.primaryResource}")
     // In client mode, download remote files.
     var localPrimaryResource: String = null
     var localJars: String = null
@@ -375,12 +395,17 @@ private[spark] class SparkSubmit extends Logging {
       localPrimaryResource = Option(args.primaryResource).map {
         downloadFile(_, targetDir, sparkConf, hadoopConf, secMgr)
       }.orNull
+      logWarning(s"prepareSubmitEnvironment(mod3.1.1): $targetDir")
+      logWarning(s"prepareSubmitEnvironment(mod3.1.2): $sparkConf")
+      logWarning(s"prepareSubmitEnvironment(mod3.1.3): $localPrimaryResource")
+
       localJars = Option(args.jars).map {
         downloadFileList(_, targetDir, sparkConf, hadoopConf, secMgr)
       }.orNull
       localPyFiles = Option(args.pyFiles).map {
         downloadFileList(_, targetDir, sparkConf, hadoopConf, secMgr)
       }.orNull
+
 
       if (isKubernetesClusterModeDriver) {
         // Replace with the downloaded local jar path to avoid propagating hadoop compatible uris.
@@ -620,6 +645,7 @@ private[spark] class SparkSubmit extends Logging {
       // remote jars, so adding a new option to only specify local jars for spark-shell internally.
       OptionAssigner(localJars, ALL_CLUSTER_MGRS, CLIENT, confKey = "spark.repl.local.jars")
     )
+    logWarning(s"prepareSubmitEnvironment(mod3.2): $childClasspath.")
 
     // In client mode, launch the application main class directly
     // In addition, add the main application jar and any added jars (if any) to the classpath
@@ -628,7 +654,9 @@ private[spark] class SparkSubmit extends Logging {
       if (localPrimaryResource != null && isUserJar(localPrimaryResource)) {
         childClasspath += localPrimaryResource
       }
+      logWarning(s"prepareSubmitEnvironment(mod3.2.1): $childClasspath.")
       if (localJars != null) { childClasspath ++= localJars.split(",") }
+      logWarning(s"prepareSubmitEnvironment(mod3.2.2): $childClasspath.")
     }
     // Add the main application jar and any added jars to classpath in case YARN client
     // requires these jars.
@@ -639,8 +667,12 @@ private[spark] class SparkSubmit extends Logging {
       if (isUserJar(args.primaryResource)) {
         childClasspath += args.primaryResource
       }
+      logWarning(s"prepareSubmitEnvironment(mod3.2.3): $childClasspath.")
       if (args.jars != null) { childClasspath ++= args.jars.split(",") }
+      logWarning(s"prepareSubmitEnvironment(mod3.2.4): $childClasspath.")
     }
+
+    logWarning(s"prepareSubmitEnvironment(mod3.3): $childClasspath.")
 
     if (deployMode == CLIENT) {
       if (args.childArgs != null) { childArgs ++= args.childArgs }
@@ -813,7 +845,7 @@ private[spark] class SparkSubmit extends Logging {
       resolvedPyFiles
     }
     sparkConf.set(SUBMIT_PYTHON_FILES, formattedPyFiles.split(",").toSeq)
-
+    logWarning(s"prepareSubmitEnvironment(mod3): $childClasspath.")
     (childArgs, childClasspath, sparkConf, childMainClass)
   }
 
@@ -868,6 +900,7 @@ private[spark] class SparkSubmit extends Logging {
    * running cluster deploy mode or python applications.
    */
   private def runMain(args: SparkSubmitArguments, uninitLog: Boolean): Unit = {
+    logWarning(s"runMain(mod1): ${args.primaryResource}")
     val (childArgs, childClasspath, sparkConf, childMainClass) = prepareSubmitEnvironment(args)
     // Let the main class re-initialize the logging system once it starts.
     if (uninitLog) {
@@ -883,7 +916,9 @@ private[spark] class SparkSubmit extends Logging {
       logInfo("\n")
     }
     val loader = getSubmitClassLoader(sparkConf)
+    logWarning(s"runMain(mod2): $childClasspath.")
     for (jar <- childClasspath) {
+      logWarning(s"runMain(mod2): $jar.")
       addJarToClasspath(jar, loader)
     }
 

@@ -20,10 +20,10 @@ package org.apache.spark.deploy.worker
 import java.io.File
 
 import org.apache.commons.lang3.StringUtils
-
+import org.apache.spark.deploy.DependencyUtils.logWarning
 import org.apache.spark.{SecurityManager, SparkConf}
 import org.apache.spark.deploy.{DependencyUtils, SparkHadoopUtil}
-import org.apache.spark.internal.{config, Logging}
+import org.apache.spark.internal.{Logging, config}
 import org.apache.spark.rpc.RpcEnv
 import org.apache.spark.util._
 
@@ -100,6 +100,7 @@ object DriverWrapper extends Logging {
     }
     val localJars = DependencyUtils.resolveAndDownloadJars(jars, userJar, sparkConf, hadoopConf,
       secMgr)
+    logWarning(s"setupDependencies: Local jars $localJars...")
     DependencyUtils.addJarsToClassPath(localJars, loader)
   }
 }
