@@ -17,7 +17,9 @@
 
 package org.apache.spark.mllib_fhe.linalg
 
-import spiritlab.sparkfhe.api.SparkFHE
+import java.util.Random
+
+import spiritlab.sparkfhe.api.{SparkFHE, StringVector}
 
 import org.apache.spark.annotation.{AlphaComponent, Since}
 import org.apache.spark.sql.catalyst.InternalRow
@@ -42,7 +44,13 @@ sealed trait CtxtMatrix extends Serializable {
 
   /** Converts to a dense array in column major. */
   @Since("1.0.0")
-  def toArray: Array[String]
+  def toArray: Array[String] = {
+    val newArray = new Array[String](numRows*numCols)
+    foreachActive((i, j, v) => {
+      newArray(j*numRows + i) = v
+    })
+    newArray
+  }
 
   /** Gets the (i, j)-th element. */
   @Since("1.3.0")
@@ -53,6 +61,62 @@ sealed trait CtxtMatrix extends Serializable {
 
   /** Update element at (i, j) */
   private[mllib_fhe] def update(i: Int, j: Int, v: String): Unit
+
+
+  /**
+   * Update all the values of this matrix using the function f. Performed in-place on the
+   * backing array. For example, an operation such as addition or subtraction will only be
+   * performed on the non-zero values in a `SparseMatrix`.
+   */
+  private[mllib_fhe] def update(f: String => String): CtxtMatrix
+
+  /** Get a deep copy of the matrix. */
+  @Since("1.2.0")
+  def copy: CtxtMatrix
+
+  /**
+   * Transpose the Matrix. Returns a new `Matrix` instance sharing the same underlying data.
+   */
+  @Since("1.3.0")
+  def transpose: CtxtMatrix
+
+  /**
+   * Applies a function `f` to all the active elements of dense and sparse matrix. The ordering
+   * of the elements are not defined.
+   *
+   * @param f the function takes three parameters where the first two parameters are the row
+   *          and column indices respectively with the type `Int`, and the final parameter is the
+   *          corresponding value in the matrix with type `Double`.
+   */
+  private[spark] def foreachActive(f: (Int, Int, String) => Unit)
+
+  /**
+   * Method for matrix - dense matrix multiplication
+   * @param y: Ctxt Dense Matrix
+   * @return resulting dense matrix
+   */
+  def multiply(y: CtxtDenseMatrix): CtxtDenseMatrix = {
+    require(numCols == y.numRows, s"The columns of this matrix doesn't match rows of y. " +
+      s"this: ${numCols}, y: ${y.numRows}")
+
+    val C = CtxtDenseMatrix.zeros(numRows, y.numCols)
+    BLAS_FHE.gemm(1.0, this, y, 0.0, C)
+    C
+  }
+
+  private[spark] def map(f: String => String): CtxtMatrix
+
+  /**
+   * Find the number of non-zero active values.
+   */
+  @Since("1.5.0")
+  def numNonzeros: String
+
+  /**
+   * Find the number of values stored explicitly. These values can be zero as well.
+   */
+  @Since("1.5.0")
+  def numActives: Int
 
 }
 
@@ -122,6 +186,10 @@ class CtxtDenseMatrix @Since("1.3.0") (
   require(values.length == numRows * numCols, "The number of values supplied doesn't match the " +
     s"size of the matrix! values.length: ${values.length}, numRows * numCols: ${numRows * numCols}")
 
+  @Since("1.0.0")
+  def this(numRows: Int, numCols: Int, values: Array[String]) =
+    this(numRows, numCols, values, false)
+
   /** Converts to a dense array in column major. */
   override def toArray: Array[String] = values
 
@@ -140,31 +208,168 @@ class CtxtDenseMatrix @Since("1.3.0") (
     values(index(i, j)) = v
   }
 
-  def multiply(y: CtxtDenseMatrix): CtxtDenseMatrix = {
-    require(numCols == y.numRows, s"The columns of this matrix doesn't match rows of y. " +
-      s"this: ${numCols}, y: ${y.numRows}")
-
-    val result = new Array[String](numRows * y.numCols)
-    // SparkFHE.getInstance().dense_matrix_multiply(values, y.values)
-    for (i <- 0 until numRows; j <- 0 until y.numCols; k <- 0 until numCols) {
-      // result[i, j] += values[i, k] * y[k, j]
-      // TODO: Using pairwise multiply could be more efficient
-      result(index(i, j)) = SparkFHE.getInstance().fhe_add(result(index(i, j)),
-        SparkFHE.getInstance().fhe_multiply(values(index(i, k)), y(k, j)))
+  /**
+   * Applies a function `f` to all the active elements of dense and sparse matrix. The ordering
+   * of the elements are not defined.
+   *
+   * @param f the function takes three parameters where the first two parameters are the row
+   *          and column indices respectively with the type `Int`, and the final parameter is the
+   *          corresponding value in the matrix with type `Double`.
+   */
+  override private[spark] def foreachActive(f: (Int, Int, String) => Unit): Unit = {
+    if (!isTransposed) {
+      for (j <- 0 until numCols) {
+        for (i <- 0 until numRows) {
+          f(i, j, values(j*numRows + i))
+        }
+      }
+    } else {
+      for (i <- 0 until numRows) {
+        for (j <- 0 until numCols) {
+          f(i, j, values(i*numCols + j))
+        }
+      }
     }
-    CtxtMatrices.dense(numRows, y.numCols, result, false)
   }
+
+  /** Get a deep copy of the matrix. */
+  override def copy: CtxtMatrix = {
+    new CtxtDenseMatrix(numRows, numCols, values.clone(), isTransposed)
+  }
+
+  /**
+   * Transpose the Matrix. Returns a new `Matrix` instance sharing the same underlying data.
+   */
+  override def transpose: CtxtMatrix = {
+    new CtxtDenseMatrix(numCols, numRows, values, !isTransposed)
+  }
+
+  override private[spark] def map(f: String => String) = {
+    new CtxtDenseMatrix(numRows, numCols, values.map(f), isTransposed)
+  }
+
+  /**
+   * Update all the values of this matrix using the function f. Performed in-place on the
+   * backing array. For example, an operation such as addition or subtraction will only be
+   * performed on the non-zero values in a `SparseMatrix`.
+   */
+  override private[mllib_fhe] def update(f: String => String): CtxtDenseMatrix = {
+    for (i <- values.indices) {
+      values(i) = f(values(i))
+    }
+    this
+  }
+
+  /**
+   * Find the number of non-zero active values.
+   */
+  override def numNonzeros: String = {
+    val vector = new StringVector(values)
+    SparkFHE.getInstance().numNonzeros(vector)
+  }
+
+  /**
+   * Find the number of values stored explicitly. These values can be zero as well.
+   */
+  override def numActives: Int = values.length
 }
 
 object CtxtDenseMatrix {
   def unapply(arg: CtxtDenseMatrix): Option[(Int, Int, Array[String], Boolean)] = {
     Some((arg.numRows, arg.numCols, arg.values, arg.isTransposed))
   }
+
+  def zeros(numRows: Int, numCols: Int): CtxtDenseMatrix = {
+    val zero = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode(0)).toString
+    val values = new Array[String](numRows*numCols)
+    for (i <- values.indices) {
+      values(i) = zero
+    }
+    CtxtMatrices.dense(numRows, numCols, values)
+  }
+
+  /**
+   * Generate a `DenseMatrix` consisting of ones.
+   * @param numRows number of rows of the matrix
+   * @param numCols number of columns of the matrix
+   * @return `DenseMatrix` with size `numRows` x `numCols` and values of ones
+   */
+  @Since("1.3.0")
+  def ones(numRows: Int, numCols: Int): CtxtDenseMatrix = {
+    val one = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode(1)).toString
+    new CtxtDenseMatrix(numRows, numCols, Array.fill(numRows*numCols)(one))
+  }
+
+  /**
+   * Generate an Identity Matrix in `DenseMatrix` format.
+   * @param n number of rows and columns of the matrix
+   * @return `DenseMatrix` with size `n` x `n` and values of ones on the diagonal
+   */
+  @Since("1.3.0")
+  def eye(n: Int): CtxtDenseMatrix = {
+    val identity = CtxtDenseMatrix.zeros(n, n)
+    val one = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode(1)).toString
+
+    for (i <- 0 until n) {
+      identity.update(i, i, one)
+    }
+
+    identity
+  }
+
+  /**
+   * Generate a `DenseMatrix` consisting of `i.i.d.` uniform random numbers.
+   * @param numRows number of rows of the matrix
+   * @param numCols number of columns of the matrix
+   * @param rng a random number generator
+   * @return `DenseMatrix` with size `numRows` x `numCols` and values in U(0, 1)
+   */
+  @Since("1.3.0")
+  def rand(numRows: Int, numCols: Int, rng: Random): CtxtDenseMatrix = {
+    new CtxtDenseMatrix(numRows, numCols,
+      Array.fill(numRows*numCols)
+      (SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode(rng.nextDouble())).toString))
+  }
+
+  /**
+   * Generate a `DenseMatrix` consisting of `i.i.d.` gaussian random numbers.
+   * @param numRows number of rows of the matrix
+   * @param numCols number of columns of the matrix
+   * @param rng a random number generator
+   * @return `DenseMatrix` with size `numRows` x `numCols` and values in N(0, 1)
+   */
+  @Since("1.3.0")
+  def randn(numRows: Int, numCols: Int, rng: Random): CtxtDenseMatrix = {
+    new CtxtDenseMatrix(numRows, numCols,
+      Array.fill(numRows*numCols)
+      (SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode(rng.nextGaussian())).toString))
+  }
+
+  /**
+   * Generate a diagonal matrix in `DenseMatrix` format from the supplied values.
+   * @param vector a `Vector` that will form the values on the diagonal of the matrix
+   * @return Square `DenseMatrix` with size `values.length` x `values.length` and `values`
+   *         on the diagonal
+   */
+  @Since("1.3.0")
+  def diag(vector: CtxtVector): CtxtDenseMatrix = {
+    val n = vector.size
+    val matrix = CtxtDenseMatrix.zeros(n, n)
+    val values = vector.toArray
+    for (i <- 0 until n) {
+      matrix.update(i, i, values(i))
+    }
+    matrix
+  }
 }
 
 object CtxtMatrices {
 
+  def dense(numRows: Int, numCols: Int, values: Array[String]): CtxtDenseMatrix =
+    new CtxtDenseMatrix(numRows, numCols, values)
+
   def dense(numRows: Int, numCols: Int, values: Array[String],
-            isTransposed: Boolean): CtxtDenseMatrix =
+            isTransposed: Boolean): CtxtDenseMatrix = {
     new CtxtDenseMatrix(numRows, numCols, values, isTransposed)
+  }
 }

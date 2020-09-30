@@ -23,7 +23,7 @@ import java.util
 import scala.annotation.varargs
 import scala.language.implicitConversions
 
-import spiritlab.sparkfhe.api.{SparkFHE, SparkFHEConstants, StringVector}
+import spiritlab.sparkfhe.api.{SparkFHE, StringVector}
 
 import org.apache.spark.annotation.{AlphaComponent, Since}
 import org.apache.spark.ml_fhe.{linalg => newlinalg}
@@ -397,12 +397,9 @@ object CtxtVectors {
         var kv = 0
         val sz = vv1.length
         while (kv < sz) {
-          val score = SparkFHE.getInstance().do_FHE_basic_op(vv1(kv), vv2(kv),
-            SparkFHEConstants.FHE_SUBTRACT)
-          squaredDistance = SparkFHE.getInstance().do_FHE_basic_op(squaredDistance,
-            SparkFHE.getInstance().do_FHE_basic_op(score, score,
-              SparkFHEConstants.FHE_MULTIPLY),
-            SparkFHEConstants.FHE_ADD)
+          val score = SparkFHE.getInstance().fhe_subtract(vv1(kv), vv2(kv))
+          squaredDistance = SparkFHE.getInstance().fhe_add(squaredDistance,
+            SparkFHE.getInstance().fhe_multiply(score, score))
           kv += 1
         }
       case _ =>

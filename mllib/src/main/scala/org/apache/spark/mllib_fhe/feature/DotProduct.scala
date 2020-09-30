@@ -17,7 +17,7 @@
 
 package org.apache.spark.mllib_fhe.feature
 
-import spiritlab.sparkfhe.api.{SparkFHE, SparkFHEConstants}
+import spiritlab.sparkfhe.api.SparkFHE
 
 import org.apache.spark.annotation.Since
 import org.apache.spark.mllib_fhe.linalg._
@@ -48,11 +48,9 @@ class DotProduct @Since("1.4.0")
         val dim = secondVec.size
         var i = 0
         while (i < dim) {
-          values(i) = SparkFHE.getInstance().do_FHE_basic_op(values(i), secondVec(i),
-            SparkFHEConstants.FHE_MULTIPLY)
+          values(i) = SparkFHE.getInstance().fhe_multiply(values(i), secondVec(i))
           if (i > 0) { // add the current result to the sum of total results
-            values(i) = SparkFHE.getInstance().do_FHE_basic_op(values(i), values(i - 1),
-              SparkFHEConstants.FHE_ADD)
+            values(i) = SparkFHE.getInstance().fhe_add(values(i), values(i - 1))
           }
           i += 1
         }

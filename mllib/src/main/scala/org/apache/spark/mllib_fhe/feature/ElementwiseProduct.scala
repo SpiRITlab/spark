@@ -17,7 +17,7 @@
 
 package org.apache.spark.mllib_fhe.feature
 
-import spiritlab.sparkfhe.api.{SparkFHE, SparkFHEConstants}
+import spiritlab.sparkfhe.api.SparkFHE
 
 import org.apache.spark.annotation.Since
 import org.apache.spark.mllib_fhe.linalg._
@@ -49,8 +49,7 @@ class ElementwiseProduct @Since("1.4.0")
         val dim = scalingVec.size
         var i = 0
         while (i < dim) {
-          values(i) = SparkFHE.getInstance().do_FHE_basic_op(values(i), scalingVec(i),
-            SparkFHEConstants.FHE_MULTIPLY)
+          values(i) = SparkFHE.getInstance().fhe_multiply(values(i), scalingVec(i))
           i += 1
         }
         CtxtVectors.dense(values)
