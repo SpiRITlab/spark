@@ -280,7 +280,7 @@ object CtxtDenseMatrix {
   }
 
   def zeros(numRows: Int, numCols: Int): CtxtDenseMatrix = {
-    val zero = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode(0)).toString
+    val zero = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode("0")).toString
     val values = new Array[String](numRows*numCols)
     for (i <- values.indices) {
       values(i) = zero
@@ -296,7 +296,7 @@ object CtxtDenseMatrix {
    */
   @Since("1.3.0")
   def ones(numRows: Int, numCols: Int): CtxtDenseMatrix = {
-    val one = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode(1)).toString
+    val one = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode("1")).toString
     new CtxtDenseMatrix(numRows, numCols, Array.fill(numRows*numCols)(one))
   }
 
@@ -308,7 +308,7 @@ object CtxtDenseMatrix {
   @Since("1.3.0")
   def eye(n: Int): CtxtDenseMatrix = {
     val identity = CtxtDenseMatrix.zeros(n, n)
-    val one = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode(1)).toString
+    val one = SparkFHE.getInstance().encrypt(SparkFHE.getInstance().encode("1")).toString
 
     for (i <- 0 until n) {
       identity.update(i, i, one)
@@ -372,4 +372,61 @@ object CtxtMatrices {
             isTransposed: Boolean): CtxtDenseMatrix = {
     new CtxtDenseMatrix(numRows, numCols, values, isTransposed)
   }
+
+  /**
+   * Generate a `Matrix` consisting of zeros.
+   * @param numRows number of rows of the matrix
+   * @param numCols number of columns of the matrix
+   * @return `Matrix` with size `numRows` x `numCols` and values of zeros
+   */
+  @Since("1.2.0")
+  def zeros(numRows: Int, numCols: Int): CtxtMatrix = CtxtDenseMatrix.zeros(numRows, numCols)
+
+  /**
+   * Generate a `DenseMatrix` consisting of ones.
+   * @param numRows number of rows of the matrix
+   * @param numCols number of columns of the matrix
+   * @return `Matrix` with size `numRows` x `numCols` and values of ones
+   */
+  @Since("1.2.0")
+  def ones(numRows: Int, numCols: Int): CtxtMatrix = CtxtDenseMatrix.ones(numRows, numCols)
+
+  /**
+   * Generate a dense Identity Matrix in `Matrix` format.
+   * @param n number of rows and columns of the matrix
+   * @return `Matrix` with size `n` x `n` and values of ones on the diagonal
+   */
+  @Since("1.2.0")
+  def eye(n: Int): CtxtMatrix = CtxtDenseMatrix.eye(n)
+
+  /**
+   * Generate a `DenseMatrix` consisting of `i.i.d.` uniform random numbers.
+   * @param numRows number of rows of the matrix
+   * @param numCols number of columns of the matrix
+   * @param rng a random number generator
+   * @return `Matrix` with size `numRows` x `numCols` and values in U(0, 1)
+   */
+  @Since("1.2.0")
+  def rand(numRows: Int, numCols: Int, rng: Random): CtxtMatrix =
+    CtxtDenseMatrix.rand(numRows, numCols, rng)
+
+  /**
+   * Generate a `DenseMatrix` consisting of `i.i.d.` gaussian random numbers.
+   * @param numRows number of rows of the matrix
+   * @param numCols number of columns of the matrix
+   * @param rng a random number generator
+   * @return `Matrix` with size `numRows` x `numCols` and values in N(0, 1)
+   */
+  @Since("1.2.0")
+  def randn(numRows: Int, numCols: Int, rng: Random): CtxtMatrix =
+    CtxtDenseMatrix.randn(numRows, numCols, rng)
+
+  /**
+   * Generate a diagonal matrix in `Matrix` format from the supplied values.
+   * @param vector a `Vector` that will form the values on the diagonal of the matrix
+   * @return Square `Matrix` with size `values.length` x `values.length` and `values`
+   *         on the diagonal
+   */
+  @Since("1.2.0")
+  def diag(vector: CtxtVector): CtxtMatrix = CtxtDenseMatrix.diag(vector)
 }

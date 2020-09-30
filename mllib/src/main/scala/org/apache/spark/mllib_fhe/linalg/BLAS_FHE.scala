@@ -18,6 +18,7 @@
 package org.apache.spark.mllib_fhe.linalg
 
 import org.apache.spark.internal.Logging
+
 import spiritlab.sparkfhe.api.{SparkFHE, StringVector}
 
 private[spark] object BLAS_FHE extends Serializable with Logging{
